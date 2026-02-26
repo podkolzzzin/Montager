@@ -29,8 +29,7 @@ COMMON="$COMMON --add-data blaze_face_short_range.tflite${SEP}."
 COMMON="$COMMON --add-data montager${SEP}montager"
 
 # Exclude heavy unused modules to reduce size
-EXCLUDES="--exclude-module matplotlib"
-EXCLUDES="$EXCLUDES --exclude-module PIL"
+EXCLUDES="--exclude-module PIL"
 EXCLUDES="$EXCLUDES --exclude-module tkinter"
 EXCLUDES="$EXCLUDES --exclude-module unittest"
 EXCLUDES="$EXCLUDES --exclude-module pydoc"
