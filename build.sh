@@ -64,10 +64,10 @@ echo ""
 echo "=== Build complete ==="
 ls -lh dist/
 
-# Create zip
+# Create zip (PowerShell on Windows, zip on Linux)
 cd dist
 if [[ "$PLATFORM" == "win" ]]; then
-    zip -9 "../montager-${PLATFORM}.zip" *
+    powershell -Command "Compress-Archive -Path '*' -DestinationPath '../montager-${PLATFORM}.zip' -Force"
 else
     zip -9 "../montager-${PLATFORM}.zip" *
 fi
