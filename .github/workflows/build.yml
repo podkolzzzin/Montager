@@ -8,34 +8,49 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: nix
+          - os: windows-latest
+            platform: win
+    runs-on: ${{ matrix.os }}
+    
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
           cache: 'pip'
           
-      - name: Install dependencies
-        run: |
-          sudo apt-get install -y ffmpeg libsndfile1
-          pip install -r requirements.txt pyinstaller
+      - name: Install system deps (Linux)
+        if: matrix.platform == 'nix'
+        run: sudo apt-get install -y ffmpeg libsndfile1
+          
+      - name: Install deps
+        run: pip install -r requirements.txt pyinstaller
           
       - name: Build
+        shell: bash
         run: ./build.sh
           
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: montager-linux
-          path: dist/
-          retention-days: 30
+          name: montager-${{ matrix.platform }}
+          path: montager-${{ matrix.platform }}.zip
 
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v1
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
         with:
-          files: montager-linux.tar.gz
+          path: artifacts
+          
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*.zip
           generate_release_notes: true

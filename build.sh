@@ -1,85 +1,78 @@
 #!/bin/bash
 # Build script for Montager executables
-# Creates: mcli (CLI), montager (GUI) for Linux
-# Creates: mcli.exe, montager.exe for Windows (when run on Windows or cross-compile)
+# Creates 4 artifacts: cli and gui for current platform
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Ensure we're in venv
-if [ -z "$VIRTUAL_ENV" ]; then
-    if [ -d "venv" ]; then
-        source venv/bin/activate
-    else
-        echo "Creating virtual environment..."
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
-    fi
-fi
-
-# Install pyinstaller if needed
-pip install pyinstaller --quiet
-
-# Clean previous builds
-rm -rf build dist
-
 # Detect platform
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
     EXT=".exe"
-    PLATFORM="windows"
+    PLATFORM="win"
+    SEP=";"
 else
     EXT=""
-    PLATFORM="linux"
+    PLATFORM="nix"
+    SEP=":"
 fi
 
 echo "Building for $PLATFORM..."
 
+# Clean previous builds
+rm -rf build dist
+
 # Common PyInstaller options
-COMMON_OPTS="--noconfirm --clean"
+COMMON="--noconfirm --clean --onefile"
+COMMON="$COMMON --add-data blaze_face_short_range.tflite${SEP}."
+COMMON="$COMMON --add-data montager${SEP}montager"
 
-# Data files to include
-DATA_OPTS="--add-data blaze_face_short_range.tflite:."
-DATA_OPTS="$DATA_OPTS --add-data montager:montager"
+# Exclude heavy unused modules to reduce size
+EXCLUDES="--exclude-module matplotlib"
+EXCLUDES="$EXCLUDES --exclude-module PIL"
+EXCLUDES="$EXCLUDES --exclude-module tkinter"
+EXCLUDES="$EXCLUDES --exclude-module unittest"
+EXCLUDES="$EXCLUDES --exclude-module pydoc"
+EXCLUDES="$EXCLUDES --exclude-module difflib"
+EXCLUDES="$EXCLUDES --exclude-module pyannote"
 
-# Hidden imports needed by the app
+# Hidden imports
 HIDDEN="--hidden-import=sklearn.cluster"
 HIDDEN="$HIDDEN --hidden-import=sklearn.utils._cython_blas"
-HIDDEN="$HIDDEN --hidden-import=scipy.special._cdflib"
 HIDDEN="$HIDDEN --hidden-import=soundfile"
 
 echo ""
-echo "=== Building CLI (mcli) ==="
-pyinstaller $COMMON_OPTS $DATA_OPTS $HIDDEN \
-    --name "mcli" \
+echo "=== Building CLI (${PLATFORM}_cli) ==="
+pyinstaller $COMMON $EXCLUDES $HIDDEN \
+    --name "${PLATFORM}_cli" \
     --console \
-    --onefile \
     montager_cli.py
 
 echo ""
-echo "=== Building GUI (montager) ==="
-pyinstaller $COMMON_OPTS $DATA_OPTS $HIDDEN \
+echo "=== Building GUI (${PLATFORM}_ui) ==="
+pyinstaller $COMMON $EXCLUDES $HIDDEN \
     --hidden-import=PyQt5.sip \
-    --name "montager" \
+    --hidden-import=PyQt5.QtCore \
+    --hidden-import=PyQt5.QtWidgets \
+    --hidden-import=PyQt5.QtGui \
+    --name "${PLATFORM}_ui" \
     --windowed \
-    --onefile \
     montager_gui.py
 
 echo ""
 echo "=== Build complete ==="
-echo "Outputs in dist/:"
-ls -la dist/
+ls -lh dist/
 
-# Create dist archive
-ARCHIVE="montager-$PLATFORM.tar.gz"
-if [[ "$PLATFORM" == "windows" ]]; then
-    ARCHIVE="montager-windows.zip"
-    cd dist && zip -r "../$ARCHIVE" . && cd ..
+# Create zip
+cd dist
+if [[ "$PLATFORM" == "win" ]]; then
+    zip -9 "../montager-${PLATFORM}.zip" *
 else
-    tar -czvf "$ARCHIVE" -C dist .
+    zip -9 "../montager-${PLATFORM}.zip" *
 fi
+cd ..
 
 echo ""
-echo "Archive created: $ARCHIVE"
+echo "Archive: montager-${PLATFORM}.zip"
+ls -lh montager-${PLATFORM}.zip
