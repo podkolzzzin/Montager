@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Montager.Core.Interfaces;
 using Montager.Core.Models;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.Statistics;
@@ -11,15 +12,19 @@ namespace Montager.Core.Services;
 /// <summary>
 /// Speaker diarization using Silero VAD + MFCC embeddings + K-means clustering.
 /// </summary>
-public class DiarizationService : IDisposable
+public class DiarizationService : IDiarizationService
 {
     private InferenceSession? _vadSession;
     private readonly string? _vadModelPath;
+    private readonly IVideoService _videoService;
+    private readonly IDetectionService _detectionService;
     private bool _disposed;
     private const int SampleRate = 16000;
 
-    public DiarizationService(string? vadModelPath = null)
+    public DiarizationService(IVideoService videoService, IDetectionService detectionService, string? vadModelPath = null)
     {
+        _videoService = videoService;
+        _detectionService = detectionService;
         _vadModelPath = vadModelPath;
     }
 
@@ -34,12 +39,11 @@ public class DiarizationService : IDisposable
         // Load scene data if not provided
         if (sceneData == null)
         {
-            var scenePath = VideoService.GetScenePath(videoPath);
+            var scenePath = _videoService.GetScenePath(videoPath);
             if (!File.Exists(scenePath))
             {
                 progress?.Report("Scene data not found, running scene detection first...");
-                using var detector = new DetectionService();
-                await detector.DetectSceneAsync(videoPath, progress);
+                await _detectionService.DetectSceneAsync(videoPath, progress);
             }
             
             var json = await File.ReadAllTextAsync(scenePath);
@@ -48,7 +52,7 @@ public class DiarizationService : IDisposable
         }
         
         progress?.Report("Extracting audio...");
-        var audioPath = await VideoService.ExtractAudioAsync(videoPath);
+        var audioPath = await _videoService.ExtractAudioAsync(videoPath);
         
         try
         {
@@ -64,7 +68,7 @@ public class DiarizationService : IDisposable
                 Segments = segments
             };
             
-            var outputPath = VideoService.GetVoiceMapPath(videoPath);
+            var outputPath = _videoService.GetVoiceMapPath(videoPath);
             var jsonOutput = JsonSerializer.Serialize(voiceMapData, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(outputPath, jsonOutput);
             

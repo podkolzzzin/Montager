@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Montager.Core.Interfaces;
 using Montager.Core.Models;
 
 namespace Montager.Core.Services;
@@ -9,12 +10,12 @@ namespace Montager.Core.Services;
 /// <summary>
 /// Video file utilities - finding, caching, and metadata extraction.
 /// </summary>
-public static class VideoService
+public class VideoService : IVideoService
 {
     /// <summary>
     /// Find video file from path or first video in specified directory.
     /// </summary>
-    public static string FindVideoFile(string? path = null, string? searchDirectory = null)
+    public string FindVideoFile(string? path = null, string? searchDirectory = null)
     {
         if (!string.IsNullOrEmpty(path))
         {
@@ -39,7 +40,7 @@ public static class VideoService
     /// Get cache directory for video intermediate files.
     /// Creates a unique folder based on hash(name + mtime + size) in system temp.
     /// </summary>
-    public static string GetCacheDir(string videoPath)
+    public string GetCacheDir(string videoPath)
     {
         var fileInfo = new FileInfo(videoPath);
         var hashInput = $"{fileInfo.Name}:{fileInfo.LastWriteTimeUtc.Ticks}:{fileInfo.Length}";
@@ -58,7 +59,7 @@ public static class VideoService
     /// <summary>
     /// Get video metadata using ffprobe.
     /// </summary>
-    public static async Task<VideoInfo> GetVideoInfoAsync(string videoPath)
+    public async Task<VideoInfo> GetVideoInfoAsync(string videoPath)
     {
         var psi = new ProcessStartInfo
         {
@@ -114,7 +115,7 @@ public static class VideoService
     /// <summary>
     /// Get the scene data file path for a video.
     /// </summary>
-    public static string GetScenePath(string videoPath)
+    public string GetScenePath(string videoPath)
     {
         var cacheDir = GetCacheDir(videoPath);
         var stem = Path.GetFileNameWithoutExtension(videoPath);
@@ -124,7 +125,7 @@ public static class VideoService
     /// <summary>
     /// Get the voicemap file path for a video.
     /// </summary>
-    public static string GetVoiceMapPath(string videoPath)
+    public string GetVoiceMapPath(string videoPath)
     {
         var cacheDir = GetCacheDir(videoPath);
         var stem = Path.GetFileNameWithoutExtension(videoPath);
@@ -134,7 +135,7 @@ public static class VideoService
     /// <summary>
     /// Get the preview HTML file path for a video.
     /// </summary>
-    public static string GetPreviewPath(string videoPath)
+    public string GetPreviewPath(string videoPath)
     {
         var cacheDir = GetCacheDir(videoPath);
         var stem = Path.GetFileNameWithoutExtension(videoPath);
@@ -144,7 +145,7 @@ public static class VideoService
     /// <summary>
     /// Get the output montage file path for a video.
     /// </summary>
-    public static string GetOutputPath(string videoPath)
+    public string GetOutputPath(string videoPath)
     {
         var dir = Path.GetDirectoryName(videoPath) ?? ".";
         var stem = Path.GetFileNameWithoutExtension(videoPath);
@@ -154,7 +155,7 @@ public static class VideoService
     /// <summary>
     /// Extract audio to WAV file using ffmpeg.
     /// </summary>
-    public static async Task<string> ExtractAudioAsync(string videoPath)
+    public async Task<string> ExtractAudioAsync(string videoPath)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.wav");
         

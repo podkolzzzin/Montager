@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Montager.Core.Interfaces;
 using Montager.Core.Models;
 using OpenCvSharp;
 using Microsoft.ML.OnnxRuntime;
@@ -9,19 +10,25 @@ namespace Montager.Core.Services;
 /// <summary>
 /// Face detection and scene analysis using BlazeFace ONNX model.
 /// </summary>
-public class DetectionService : IDisposable
+public class DetectionService : IDetectionService
 {
     private InferenceSession? _session;
-    private readonly string _modelPath;
+    private string? _modelPath;
+    private readonly IVideoService _videoService;
     private bool _disposed;
+    private bool _modelSearched;
 
-    public DetectionService(string? modelPath = null)
+    public DetectionService(IVideoService videoService, string? modelPath = null)
     {
-        _modelPath = modelPath ?? FindModelPath();
+        _videoService = videoService;
+        _modelPath = modelPath;
     }
 
-    private static string FindModelPath()
+    private string? FindModelPath()
     {
+        if (_modelSearched) return _modelPath;
+        _modelSearched = true;
+        
         // Look for model in common locations
         var locations = new[]
         {
@@ -33,11 +40,14 @@ public class DetectionService : IDisposable
         foreach (var loc in locations)
         {
             if (File.Exists(loc))
-                return loc;
+            {
+                _modelPath = loc;
+                return _modelPath;
+            }
         }
 
-        throw new FileNotFoundException(
-            "BlazeFace ONNX model not found. Please download blaze_face_short_range.onnx");
+        // No ONNX model found - will fall back to OpenCV cascade
+        return null;
     }
 
     /// <summary>
@@ -47,7 +57,7 @@ public class DetectionService : IDisposable
     {
         progress?.Report("Initializing face detection...");
         
-        var videoInfo = await VideoService.GetVideoInfoAsync(videoPath);
+        var videoInfo = await _videoService.GetVideoInfoAsync(videoPath);
         var faces = DetectFacesInVideo(videoPath, videoInfo, progress);
         
         progress?.Report($"Found {faces.Count} face detections");
@@ -65,7 +75,7 @@ public class DetectionService : IDisposable
             Speakers = speakers.Select(SpeakerDto.FromSpeaker).ToList()
         };
         
-        var outputPath = VideoService.GetScenePath(videoPath);
+        var outputPath = _videoService.GetScenePath(videoPath);
         var json = JsonSerializer.Serialize(sceneData, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(outputPath, json);
         
@@ -116,8 +126,15 @@ public class DetectionService : IDisposable
 
     private List<BoundingBox> DetectFacesInFrame(Mat frame)
     {
+        // Try ONNX model first, fall back to cascade
+        var modelPath = FindModelPath();
+        if (string.IsNullOrEmpty(modelPath))
+        {
+            return DetectFacesWithCascade(frame);
+        }
+        
         // Lazy initialize ONNX session
-        _session ??= new InferenceSession(_modelPath);
+        _session ??= new InferenceSession(modelPath);
         
         var results = new List<BoundingBox>();
         

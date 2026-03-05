@@ -1,4 +1,6 @@
-﻿using Montager.Core.Services;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Montager.Core;
+using Montager.Core.Interfaces;
 
 namespace Montager.Cli;
 
@@ -18,33 +20,41 @@ class Program
         var command = args[0].ToLowerInvariant();
         var videoArg = args.Length > 1 ? args[1] : null;
 
+        // Setup DI
+        var services = new ServiceCollection();
+        services.AddMontagerServices();
+        using var serviceProvider = services.BuildServiceProvider();
+
         try
         {
-            var videoPath = VideoService.FindVideoFile(videoArg);
+            var videoService = serviceProvider.GetRequiredService<IVideoService>();
+            var videoPath = videoService.FindVideoFile(videoArg);
             var progress = new Progress<string>(Console.WriteLine);
 
             switch (command)
             {
                 case "/detect-scene":
-                    using (var detector = new DetectionService())
+                    using (var detector = serviceProvider.GetRequiredService<IDetectionService>())
                     {
                         await detector.DetectSceneAsync(videoPath, progress);
                     }
                     break;
 
                 case "/detect-voicemap":
-                    using (var diarizer = new DiarizationService())
+                    using (var diarizer = serviceProvider.GetRequiredService<IDiarizationService>())
                     {
                         await diarizer.DetectVoiceMapAsync(videoPath, null, progress);
                     }
                     break;
 
                 case "/preview":
-                    await PreviewService.GeneratePreviewAsync(videoPath, progress);
+                    var previewService = serviceProvider.GetRequiredService<IPreviewService>();
+                    await previewService.GeneratePreviewAsync(videoPath, progress);
                     break;
 
                 case "/render":
-                    await RenderService.RenderMontageAsync(videoPath, progress);
+                    var renderService = serviceProvider.GetRequiredService<IRenderService>();
+                    await renderService.RenderMontageAsync(videoPath, progress);
                     break;
 
                 default:

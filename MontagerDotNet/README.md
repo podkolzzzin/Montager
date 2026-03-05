@@ -8,7 +8,7 @@
 |---------|-------------|
 | **Montager.Core** | Core library with face detection, diarization, transforms, preview, and render |
 | **Montager.Cli** | Command-line interface |
-| **Montager.Maui** | Desktop UI (MAUI when workload installed, console fallback otherwise) |
+| **Montager.Avalonia** | Desktop UI (cross-platform Avalonia) |
 
 ## Quick Start
 
@@ -28,10 +28,10 @@ dotnet run --project Montager.Cli -- /preview video.mp4
 dotnet run --project Montager.Cli -- /render video.mp4
 ```
 
-### Interactive Mode
+### Desktop App
 
 ```bash
-dotnet run --project Montager.Maui
+dotnet run --project Montager.Avalonia
 ```
 
 ## Requirements
@@ -42,19 +42,18 @@ dotnet run --project Montager.Maui
 - **FFmpeg** and **FFprobe** - for video processing
 - **OpenCV** - provided via OpenCvSharp4 NuGet package
 
-### Optional: MAUI Workload (for GUI)
-
-```bash
-sudo dotnet workload install maui
-```
-
-Without the MAUI workload, Montager.Maui runs as a console-based interactive app.
-
 ## Architecture
 
 ```
 Montager.Core/
 ├── Constants.cs           # Configuration (output size, thresholds)
+├── ServiceCollectionExtensions.cs  # DI registration
+├── Interfaces/
+│   ├── IDetectionService.cs
+│   ├── IDiarizationService.cs
+│   ├── IPreviewService.cs
+│   ├── IRenderService.cs
+│   └── IVideoService.cs
 ├── Models/
 │   ├── Speaker.cs         # Speaker with face bbox and crop rect
 │   ├── SceneData.cs       # Scene detection output
@@ -67,6 +66,14 @@ Montager.Core/
     ├── TransformService.cs    # Segment transforms
     ├── PreviewService.cs      # HTML preview generation
     └── RenderService.cs       # FFmpeg montage rendering
+
+Montager.Avalonia/
+├── App.axaml(.cs)         # Application with DI setup
+├── Program.cs             # Entry point
+├── ViewModels/
+│   └── MainWindowViewModel.cs  # MVVM ViewModel
+└── Views/
+    └── MainWindow.axaml(.cs)   # Main UI
 ```
 
 ## Features
@@ -121,10 +128,19 @@ Intermediate files are stored in `/tmp/montager/{video}_{hash}/`:
 
 ## NuGet Dependencies
 
+### Core
 - OpenCvSharp4
 - Microsoft.ML.OnnxRuntime
 - NAudio
 - MathNet.Numerics
+- Microsoft.Extensions.DependencyInjection.Abstractions
+
+### Avalonia UI
+- Avalonia
+- Avalonia.Desktop
+- Avalonia.Themes.Fluent
+- CommunityToolkit.Mvvm
+- Microsoft.Extensions.DependencyInjection
 
 ## Migration Notes (from Python)
 
@@ -136,4 +152,4 @@ Intermediate files are stored in `/tmp/montager/{video}_{hash}/`:
 | soundfile | NAudio |
 | torch/silero-vad | Energy-based VAD (ONNX optional) |
 | scikit-learn | Manual K-means implementation |
-| PyQt5 | MAUI (with workload) / Console fallback |
+| PyQt5 | Avalonia |

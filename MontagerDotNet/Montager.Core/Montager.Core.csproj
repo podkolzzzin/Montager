@@ -8,10 +8,11 @@
 
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.24.2" />
     <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260302" />
-    <PackageReference Include="OpenCvSharp4.runtime.ubuntu.22.04-x64" Version="4.6.0-SNAPSHOT" />
+    <PackageReference Include="OpenCvSharp4" Version="4.10.0.20241107" />
+    <PackageReference Include="OpenCvSharp4.runtime.linux-x64" Version="4.10.0.20241107" />
   </ItemGroup>
 
 </Project>

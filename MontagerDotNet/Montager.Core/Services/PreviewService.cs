@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Montager.Core.Interfaces;
 using Montager.Core.Models;
 
 namespace Montager.Core.Services;
@@ -7,17 +8,24 @@ namespace Montager.Core.Services;
 /// <summary>
 /// HTML preview generation with video player and crop overlay.
 /// </summary>
-public static class PreviewService
+public class PreviewService : IPreviewService
 {
+    private readonly IVideoService _videoService;
+    
+    public PreviewService(IVideoService videoService)
+    {
+        _videoService = videoService;
+    }
+    
     /// <summary>
     /// Generate HTML preview player.
     /// </summary>
-    public static async Task<string> GeneratePreviewAsync(
+    public async Task<string> GeneratePreviewAsync(
         string videoPath,
         IProgress<string>? progress = null)
     {
-        var scenePath = VideoService.GetScenePath(videoPath);
-        var voiceMapPath = VideoService.GetVoiceMapPath(videoPath);
+        var scenePath = _videoService.GetScenePath(videoPath);
+        var voiceMapPath = _videoService.GetVoiceMapPath(videoPath);
         
         SceneData? sceneData = null;
         VoiceMapData? voiceMapData = null;
@@ -45,7 +53,7 @@ public static class PreviewService
         
         var html = GeneratePreviewHtml(videoPath, sceneData, segments);
         
-        var outputPath = VideoService.GetPreviewPath(videoPath);
+        var outputPath = _videoService.GetPreviewPath(videoPath);
         await File.WriteAllTextAsync(outputPath, html);
         
         progress?.Report($"✅ Preview saved to: {outputPath}");

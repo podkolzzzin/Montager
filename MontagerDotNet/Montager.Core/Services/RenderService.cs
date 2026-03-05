@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using Montager.Core.Interfaces;
 using Montager.Core.Models;
 
 namespace Montager.Core.Services;
@@ -8,31 +9,43 @@ namespace Montager.Core.Services;
 /// <summary>
 /// FFmpeg-based video montage rendering.
 /// </summary>
-public static class RenderService
+public class RenderService : IRenderService
 {
+    private readonly IVideoService _videoService;
+    private readonly IDetectionService _detectionService;
+    private readonly IDiarizationService _diarizationService;
+    
+    public RenderService(
+        IVideoService videoService,
+        IDetectionService detectionService,
+        IDiarizationService diarizationService)
+    {
+        _videoService = videoService;
+        _detectionService = detectionService;
+        _diarizationService = diarizationService;
+    }
+    
     /// <summary>
     /// Render the final montage video.
     /// </summary>
-    public static async Task<string> RenderMontageAsync(
+    public async Task<string> RenderMontageAsync(
         string videoPath,
         IProgress<string>? progress = null)
     {
-        var scenePath = VideoService.GetScenePath(videoPath);
-        var voiceMapPath = VideoService.GetVoiceMapPath(videoPath);
+        var scenePath = _videoService.GetScenePath(videoPath);
+        var voiceMapPath = _videoService.GetVoiceMapPath(videoPath);
         
         // Auto-run detection if needed
         if (!File.Exists(scenePath))
         {
             progress?.Report("Scene data not found, running scene detection...");
-            using var detector = new DetectionService();
-            await detector.DetectSceneAsync(videoPath, progress);
+            await _detectionService.DetectSceneAsync(videoPath, progress);
         }
         
         if (!File.Exists(voiceMapPath))
         {
             progress?.Report("Voice map not found, running voice detection...");
-            using var diarizer = new DiarizationService();
-            await diarizer.DetectVoiceMapAsync(videoPath, null, progress);
+            await _diarizationService.DetectVoiceMapAsync(videoPath, null, progress);
         }
         
         var sceneJson = await File.ReadAllTextAsync(scenePath);
@@ -49,6 +62,12 @@ public static class RenderService
         
         var speakers = sceneData.Speakers.ToDictionary(s => s.Id);
         
+        // Find which speakers are actually used
+        var usedSpeakers = edl.Select(e => e.View)
+            .Where(v => speakers.ContainsKey(v))
+            .Distinct()
+            .ToHashSet();
+        
         // Build ffmpeg filter
         var filters = new List<string>();
         
@@ -56,8 +75,8 @@ public static class RenderService
         filters.Add($"[0:v]scale={Constants.OutputWidth}:{Constants.OutputHeight}:" +
             $"force_original_aspect_ratio=decrease,pad={Constants.OutputWidth}:{Constants.OutputHeight}:-1:-1,setsar=1[wide]");
         
-        // Speaker crop streams
-        foreach (var speaker in sceneData.Speakers)
+        // Speaker crop streams (only for speakers that are used)
+        foreach (var speaker in sceneData.Speakers.Where(s => usedSpeakers.Contains(s.Id)))
         {
             var cr = speaker.CropRect;
             filters.Add($"[0:v]crop={cr[2]}:{cr[3]}:{cr[0]}:{cr[1]}," +
@@ -79,7 +98,7 @@ public static class RenderService
         filters.Add($"{string.Join("", segNames)}concat=n={edl.Count}:v=1:a=0[outv]");
         
         var filterComplex = string.Join(";", filters);
-        var outputPath = VideoService.GetOutputPath(videoPath);
+        var outputPath = _videoService.GetOutputPath(videoPath);
         
         var args = new StringBuilder();
         args.Append($"-y -i \"{videoPath}\" ");
