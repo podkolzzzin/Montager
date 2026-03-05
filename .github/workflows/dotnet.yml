@@ -27,16 +27,13 @@ jobs:
           dotnet-quality: 'preview'
       
       - name: Restore dependencies
-        working-directory: MontagerDotNet
-        run: dotnet restore
+        run: dotnet restore MontagerDotNet/Montager.sln
       
       - name: Build
-        working-directory: MontagerDotNet
-        run: dotnet build --no-restore -c Release
+        run: dotnet build MontagerDotNet/Montager.sln --no-restore -c Release
       
       - name: Publish CLI
-        working-directory: MontagerDotNet
-        run: dotnet publish Montager.Cli -c Release -o publish/cli --self-contained false
+        run: dotnet publish MontagerDotNet/Montager.Cli -c Release -o MontagerDotNet/publish/cli --self-contained false
       
       - name: Upload CLI artifact
         uses: actions/upload-artifact@v4
