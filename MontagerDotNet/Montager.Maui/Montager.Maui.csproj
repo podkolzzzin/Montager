@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- 
+      MAUI requires workload installation:
+      sudo dotnet workload install maui
+      
+      For Linux without workload, use net10.0 target.
+      Full MAUI support on Windows/macOS with proper workloads.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Montager.Maui</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationTitle>Montager</ApplicationTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Montager.Core\Montager.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Exclude MAUI files when workload not available -->
+  <ItemGroup>
+    <Compile Remove="MauiFiles\**" />
+    <None Remove="MauiFiles\**" />
+  </ItemGroup>
+
+  <!-- Uncomment below when MAUI workload is installed -->
+  <!--
+  <PropertyGroup>
+    <UseMaui>true</UseMaui>
+    <TargetFrameworks>net10.0-maccatalyst;net10.0-windows10.0.19041.0</TargetFrameworks>
+    <SingleProject>true</SingleProject>
+    <ApplicationId>com.montager.app</ApplicationId>
+    <ApplicationIdGuid>A1B2C3D4-E5F6-7890-ABCD-EF1234567890</ApplicationIdGuid>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="MauiFiles\**" />
+  </ItemGroup>
+  -->
+
+</Project>
