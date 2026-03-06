@@ -173,6 +173,7 @@
         <span v-else>No file open</span>
       </div>
       <div class="statusbar-section">
+        <span v-if="audioTranscodingMsg" class="audio-compat-status">{{ audioTranscodingMsg }}</span>
         <span v-if="videoMeta">{{ videoMeta.width }}×{{ videoMeta.height }}</span>
         <span>Montager PWA</span>
       </div>
@@ -206,6 +207,7 @@ import {
   clearAll
 } from './services/storage.js'
 import { prefetchModels, getModelStatus } from './services/modelManager.js'
+import { checkAudioCompat, ensurePlayableAudio } from './services/audioCompat.js'
 import VoiceWorker from './workers/voiceWorker.js?worker'
 
 const videoSrc = ref(null)
@@ -226,6 +228,10 @@ const videoContainerEl = ref(null)
 const containerSize = reactive({ width: 0, height: 0 })
 let resizeObserver = null
 let restoring = false
+
+// ── Audio compatibility state ──
+const audioTranscoding = ref(false)
+const audioTranscodingMsg = ref('')
 
 // ── Scene detection state ──
 const sceneDetecting = ref(false)
@@ -313,9 +319,16 @@ const previewVideoStyle = computed(() => {
   // Zoom to fill the container
   const zoom = Math.min(ctnW / cropElemW, ctnH / cropElemH)
 
+  // Clip the video to only show the crop rect (in pre-transform element space)
+  const clipTop = cy * displayScale
+  const clipRight = videoElemW - (cx + cw) * displayScale
+  const clipBottom = videoElemH - (cy + ch) * displayScale
+  const clipLeft = cx * displayScale
+
   return {
     transformOrigin: '0 0',
-    transform: `translate(${videoElemW / 2}px, ${videoElemH / 2}px) scale(${zoom}) translate(${-cropCenterX}px, ${-cropCenterY}px)`
+    transform: `translate(${videoElemW / 2}px, ${videoElemH / 2}px) scale(${zoom}) translate(${-cropCenterX}px, ${-cropCenterY}px)`,
+    clipPath: `inset(${clipTop}px ${clipRight}px ${clipBottom}px ${clipLeft}px)`
   }
 })
 
@@ -349,8 +362,9 @@ function onDrop(e) {
   if (file && file.type.startsWith('video/')) loadVideo(file)
 }
 
-function loadVideo(file) {
+async function loadVideo(file) {
   if (videoSrc.value) URL.revokeObjectURL(videoSrc.value)
+  // Show the video immediately for instant visual preview
   videoSrc.value = URL.createObjectURL(file)
   videoFile.value = file
   fileName.value = file.name
@@ -362,6 +376,50 @@ function loadVideo(file) {
   voiceSegments.value = []
   voiceMap.value = {}
   saveVideoFile(file).catch(console.error)
+
+  // Check audio compatibility and transcode if needed
+  fixAudioIfNeeded(file)
+}
+
+async function fixAudioIfNeeded(file) {
+  try {
+    const { supported, codec } = await checkAudioCompat(file)
+    if (supported) return
+
+    audioTranscoding.value = true
+    audioTranscodingMsg.value = `Audio codec "${codec}" not supported — transcoding…`
+    const result = await ensurePlayableAudio(file, (msg) => {
+      audioTranscodingMsg.value = msg
+    })
+
+    if (result.transcoded && videoFile.value === file) {
+      // Swap to transcoded version, preserving playback position
+      const savedTime = videoEl.value?.currentTime || 0
+      const wasPaused = videoEl.value?.paused ?? true
+      if (videoSrc.value) URL.revokeObjectURL(videoSrc.value)
+      videoSrc.value = URL.createObjectURL(result.file)
+      videoFile.value = result.file
+      // Restore position after source swap
+      if (videoEl.value) {
+        const onReady = () => {
+          videoEl.value.currentTime = savedTime
+          if (!wasPaused) videoEl.value.play().catch(() => {})
+          videoEl.value.removeEventListener('loadeddata', onReady)
+        }
+        videoEl.value.addEventListener('loadeddata', onReady)
+      }
+      audioTranscodingMsg.value = 'Audio transcoded ✓'
+      // Save the transcoded file to IndexedDB so next load is instant
+      saveVideoFile(result.file).catch(console.error)
+    }
+  } catch (err) {
+    console.warn('Audio compat check failed:', err)
+    audioTranscodingMsg.value = ''
+  } finally {
+    audioTranscoding.value = false
+    // Clear message after a few seconds
+    setTimeout(() => { audioTranscodingMsg.value = '' }, 5000)
+  }
 }
 
 function closeVideo() {
@@ -642,6 +700,9 @@ onMounted(async () => {
     fileName.value = stored.fileName
     videoSrc.value = URL.createObjectURL(stored.file)
 
+    // Check audio compatibility for restored file (non-blocking)
+    fixAudioIfNeeded(stored.file)
+
     const scene = await loadSceneData()
     if (scene) sceneData.value = scene
 
@@ -726,5 +787,11 @@ onMounted(async () => {
 /* ── Preview mode ── */
 .video-container.preview-mode video {
   cursor: pointer;
+}
+
+/* ── Audio compat status ── */
+.audio-compat-status {
+  padding: 0 6px;
+  opacity: 0.9;
 }
 </style>
