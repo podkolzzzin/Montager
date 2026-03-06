@@ -30,6 +30,20 @@ jobs:
         run: npm run build
         working-directory: MontagerPWA
 
+      - name: Upload models to R2
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: r2 object put montager/models/silero_vad.onnx --file models/silero_vad.onnx --content-type application/octet-stream --remote
+
+      - name: Upload wespeaker model to R2
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: r2 object put montager/models/wespeaker_en_voxceleb_resnet34.onnx --file models/wespeaker_en_voxceleb_resnet34.onnx --content-type application/octet-stream --remote
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:

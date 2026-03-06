@@ -13,7 +13,7 @@ MontagerPWA/          # Vue 3 + Vite PWA application
     components/       # UI components (CropOverlay, SceneDetection, SidePanel, VoiceDetection, VoiceTimeline)
     services/         # Core logic (scene detection, VAD, speaker embedding, clustering, post-processing)
     workers/          # Web Worker for off-main-thread voice processing
-  public/models/      # ONNX models (Silero VAD, Wespeaker ResNet-34)
+models/               # ONNX models (uploaded to R2 at deploy time)
 ```
 
 ## Development
@@ -38,7 +38,7 @@ Dev server sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embe
 
 ## Key Technical Notes
 
-- Silero VAD model served from `public/models/`; wespeaker model fetched from jsDelivr CDN (exceeds CF Pages 25 MB limit). Both cached in OPFS by `services/modelManager.js`
+- ONNX models (Silero VAD, Wespeaker ResNet-34) stored in Cloudflare R2 bucket `montager`, served via `data.montager.podkolzin.consulting`. Cached in OPFS by `services/modelManager.js`
 - Video and state persisted in IndexedDB
 - Voice processing runs entirely in a Web Worker to keep UI responsive
 - Workbox cache limit set to 30MB for WASM binaries
@@ -49,4 +49,4 @@ Cloudflare Pages via GitHub Actions. Pushes to `main` trigger build and deploy.
 
 Live at **https://montager.podkolzin.consulting**
 
-The wespeaker ONNX model (25.3 MB) exceeds CF Pages' 25 MB per-file limit, so it lives at repo root `/models/` and is served via jsDelivr CDN at runtime. The modelManager caches it in OPFS after first download.
+ONNX models live at repo root `/models/` and are uploaded to Cloudflare R2 bucket `montager` during CI. Served at runtime via **https://data.montager.podkolzin.consulting/models/**. The modelManager caches them in OPFS after first download.

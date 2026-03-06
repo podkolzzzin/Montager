@@ -20,16 +20,17 @@ const MODEL_DIR = 'montager-models'
  * `url` is a CDN/public path; `size` is the approximate byte count (for
  * progress reporting — 0 means "unknown").
  */
+const R2_BASE = 'https://data.montager.podkolzin.consulting'
+
 const MODELS = {
   silero_vad: {
     fileName: 'silero_vad.onnx',
-    url: '/models/silero_vad.onnx',
+    url: `${R2_BASE}/models/silero_vad.onnx`,
     size: 2_330_000,
   },
   speaker_embedding: {
     fileName: 'wespeaker_en_voxceleb_resnet34.onnx',
-    // Hosted at repo root /models/ — served via jsDelivr CDN (25 MB exceeds CF Pages per-file limit)
-    url: 'https://cdn.jsdelivr.net/gh/podkolzzzin/Montager@main/models/wespeaker_en_voxceleb_resnet34.onnx',
+    url: `${R2_BASE}/models/wespeaker_en_voxceleb_resnet34.onnx`,
     size: 26_500_000,
   },
 }
