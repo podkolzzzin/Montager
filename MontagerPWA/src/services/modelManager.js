@@ -28,7 +28,8 @@ const MODELS = {
   },
   speaker_embedding: {
     fileName: 'wespeaker_en_voxceleb_resnet34.onnx',
-    url: '/models/wespeaker_en_voxceleb_resnet34.onnx',
+    // Hosted at repo root /models/ — served via jsDelivr CDN (25 MB exceeds CF Pages per-file limit)
+    url: 'https://cdn.jsdelivr.net/gh/podkolzzzin/Montager@main/models/wespeaker_en_voxceleb_resnet34.onnx',
     size: 26_500_000,
   },
 }
