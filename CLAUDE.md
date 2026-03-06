@@ -38,7 +38,7 @@ Dev server sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embe
 
 ## Key Technical Notes
 
-- ONNX models are served from `public/models/` and cached in OPFS by `services/modelManager.js`
+- Silero VAD model served from `public/models/`; wespeaker model fetched from jsDelivr CDN (exceeds CF Pages 25 MB limit). Both cached in OPFS by `services/modelManager.js`
 - Video and state persisted in IndexedDB
 - Voice processing runs entirely in a Web Worker to keep UI responsive
 - Workbox cache limit set to 30MB for WASM binaries
@@ -46,3 +46,7 @@ Dev server sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embe
 ## Deployment
 
 Cloudflare Pages via GitHub Actions. Pushes to `main` trigger build and deploy.
+
+Live at **https://montager.podkolzin.consulting**
+
+The wespeaker ONNX model (25.3 MB) exceeds CF Pages' 25 MB per-file limit, so it lives at repo root `/models/` and is served via jsDelivr CDN at runtime. The modelManager caches it in OPFS after first download.

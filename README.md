@@ -49,6 +49,8 @@ Open http://localhost:5173, drag & drop a video file.
 
 Deployed to Cloudflare Pages. Pushes to `main` trigger automatic deployment via GitHub Actions.
 
+**Live:** https://montager.podkolzin.consulting
+
 ## License
 
 MIT
