@@ -1,0 +1,276 @@
+/* ── VS Code-inspired dark theme tokens ── */
+:root {
+  --bg:            #1e1e1e;
+  --bg-sidebar:    #252526;
+  --bg-editor:     #1e1e1e;
+  --bg-titlebar:   #323233;
+  --bg-input:      #3c3c3c;
+  --bg-button:     #0e639c;
+  --bg-button-hover:#1177bb;
+  --border:        #3c3c3c;
+  --fg:            #cccccc;
+  --fg-dim:        #858585;
+  --fg-bright:     #e8e8e8;
+  --accent:        #0078d4;
+  --accent-fg:     #ffffff;
+  --font-family:   'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --radius:        4px;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Title bar ── */
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--bg-titlebar);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+  flex-shrink: 0;
+}
+.titlebar-icon {
+  width: 18px;
+  height: 18px;
+}
+.titlebar-title {
+  font-size: 12px;
+  color: var(--fg-dim);
+  letter-spacing: 0.02em;
+}
+
+/* ── Main layout ── */
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Activity bar (icon strip) ── */
+.activity-bar {
+  width: 48px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.ab-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--fg-dim);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.ab-btn:hover,
+.ab-btn.active {
+  background: var(--bg-input);
+  color: var(--fg-bright);
+}
+.ab-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Editor area / Video area ── */
+.editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Welcome screen ── */
+.welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 32px;
+  text-align: center;
+}
+.welcome-logo {
+  width: 80px;
+  height: 80px;
+  opacity: 0.7;
+}
+.welcome h1 {
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--fg-bright);
+}
+.welcome p {
+  color: var(--fg-dim);
+  font-size: 13px;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-family: var(--font-family);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-primary {
+  background: var(--bg-button);
+  color: var(--accent-fg);
+}
+.btn-primary:hover {
+  background: var(--bg-button-hover);
+}
+.btn-secondary {
+  background: var(--bg-input);
+  color: var(--fg);
+}
+.btn-secondary:hover {
+  background: #505050;
+}
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* ── Tab bar ── */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--fg-dim);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab.active {
+  color: var(--fg-bright);
+  border-bottom-color: var(--accent);
+  background: var(--bg-editor);
+}
+.tab-close {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--fg-dim);
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.tab-close:hover {
+  background: var(--bg-input);
+  color: var(--fg-bright);
+}
+
+/* ── Video preview ── */
+.video-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+.video-container video {
+  max-width: 100%;
+  max-height: 100%;
+  outline: none;
+}
+
+/* ── Status bar ── */
+.statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  padding: 0 10px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 11px;
+  flex-shrink: 0;
+  user-select: none;
+}
+.statusbar-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Drop overlay ── */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 120, 212, 0.12);
+  border: 2px dashed var(--accent);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.drop-overlay span {
+  font-size: 18px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }

@@ -1,57 +1,53 @@
-# Montager 🎬
+# Montager
 
-Automatic 3-camera montage generator for 4K video. Detects speakers via face detection and creates auto-switching montage based on voice activity.
+Browser-based automatic video montage editor for multi-speaker videos (podcasts, interviews, panel talks). Analyzes video to detect speakers via face detection, identifies who's speaking via voice activity detection and speaker diarization, then auto-generates a director's cut timeline — all entirely client-side with no server.
 
 ## Features
 
-- **Face Detection** - Uses OpenCV + ONNX BlazeFace to detect and track speakers
-- **Voice Activity Detection** - Energy-based VAD with MFCC speaker clustering
-- **Auto-switching** - Intelligently switches between speaker crops and wide shot
-- **HTML Preview** - Preview montage without rendering
-- **FFmpeg Rendering** - High-quality 1080p output
-
-## Requirements
-
-- .NET 10 SDK
-- FFmpeg and FFprobe
+- **Face Detection** — TensorFlow.js MediaPipe BlazeFace samples video frames and clusters detected faces into speakers
+- **Voice Activity Detection** — Silero VAD v5 ONNX model detects speech segments at 32ms granularity
+- **Speaker Diarization** — Wespeaker ResNet-34 produces 256-dim embeddings per segment, clustered via agglomerative hierarchical clustering
+- **Director's Cut** — post-processing pipeline mimics professional editing: follows active speaker, absorbs backchannels, applies reaction delays, inserts wide shots during silence
+- **Adjustable Crop Overlays** — per-speaker 9:16 crop rectangles, draggable and resizable with aspect-ratio lock
+- **Two-level Timeline** — minimap overview + zoomable detail view with draggable cut edges
+- **Preview Mode** — CSS-transform zoom into the active speaker's crop in real-time
+- **Video Rendering** — FFmpeg WASM renders final montage as cropped/stitched H.264 MP4 with AAC audio
+- **Offline-capable PWA** — full state persistence via IndexedDB, ML models cached in OPFS
 
 ## Quick Start
 
 ```bash
-cd MontagerDotNet
-dotnet build
+cd MontagerPWA
+npm install
+npm run dev
 ```
 
-### CLI Usage
+Open http://localhost:5173, drag & drop a video file.
 
-```bash
-dotnet run --project Montager.Cli -- /detect-scene video.mp4
-dotnet run --project Montager.Cli -- /detect-voicemap video.mp4
-dotnet run --project Montager.Cli -- /preview video.mp4
-dotnet run --project Montager.Cli -- /render video.mp4
-```
+## Tech Stack
 
-### Interactive Mode
+| Layer | Technology |
+|-------|------------|
+| Framework | Vue 3 (Composition API) |
+| Build | Vite 6 |
+| PWA | vite-plugin-pwa (Workbox) |
+| Face Detection | TensorFlow.js + MediaPipe BlazeFace |
+| VAD | Silero VAD v5 via onnxruntime-web |
+| Speaker Embedding | Wespeaker ResNet-34 ONNX |
+| Audio/Video | FFmpeg WASM |
+| Clustering | Custom AHC (cosine distance, average linkage) |
 
-```bash
-dotnet run --project Montager.Maui
-```
+## Scripts
 
-## Commands
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server with COOP/COEP headers |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build locally |
 
-| Command | Description | Output |
-|---------|-------------|--------|
-| `/detect-scene` | Detect faces, identify speakers, calculate crop regions | `.scene.json` |
-| `/detect-voicemap` | Detect speech segments using VAD | `.voicemap.json` |
-| `/preview` | Generate HTML preview player (no rendering) | `.preview.html` |
-| `/render` | Render final 1080p montage with auto-switching | `_montage.mp4` |
+## Deployment
 
-## Output Specs
-
-- Resolution: 1920x1080 (Full HD)
-- Codec: H.264 (libx264)
-- Audio: AAC 192kbps
-- Quality: CRF 18 (high quality)
+Deployed to Cloudflare Pages. Pushes to `main` trigger automatic deployment via GitHub Actions.
 
 ## License
 
