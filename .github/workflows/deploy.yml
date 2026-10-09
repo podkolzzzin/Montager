@@ -26,6 +26,10 @@ jobs:
         run: npm ci
         working-directory: MontagerPWA
 
+      - name: Test audio compatibility
+        run: npm test
+        working-directory: MontagerPWA
+
       - name: Build
         run: npm run build
         working-directory: MontagerPWA

@@ -228,6 +228,8 @@ const videoContainerEl = ref(null)
 const containerSize = reactive({ width: 0, height: 0 })
 let resizeObserver = null
 let restoring = false
+let audioStatusTimer = null
+let audioRequestId = 0
 
 // ── Audio compatibility state ──
 const audioTranscoding = ref(false)
@@ -363,6 +365,8 @@ function onDrop(e) {
 }
 
 async function loadVideo(file) {
+  clearTimeout(audioStatusTimer)
+  audioTranscodingMsg.value = ''
   if (videoSrc.value) URL.revokeObjectURL(videoSrc.value)
   // Show the video immediately for instant visual preview
   videoSrc.value = URL.createObjectURL(file)
@@ -382,17 +386,20 @@ async function loadVideo(file) {
 }
 
 async function fixAudioIfNeeded(file) {
+  const requestId = ++audioRequestId
   try {
-    const { supported, codec } = await checkAudioCompat(file)
+    const compatibility = await checkAudioCompat(file)
+    if (requestId !== audioRequestId || videoFile.value !== file) return
+    const { supported, codec } = compatibility
     if (supported) return
 
     audioTranscoding.value = true
     audioTranscodingMsg.value = `Audio codec "${codec}" not supported — transcoding…`
     const result = await ensurePlayableAudio(file, (msg) => {
-      audioTranscodingMsg.value = msg
-    })
+      if (requestId === audioRequestId && videoFile.value === file) audioTranscodingMsg.value = msg
+    }, compatibility)
 
-    if (result.transcoded && videoFile.value === file) {
+    if (result.transcoded && requestId === audioRequestId && videoFile.value === file) {
       // Swap to transcoded version, preserving playback position
       const savedTime = videoEl.value?.currentTime || 0
       const wasPaused = videoEl.value?.paused ?? true
@@ -414,15 +421,20 @@ async function fixAudioIfNeeded(file) {
     }
   } catch (err) {
     console.warn('Audio compat check failed:', err)
-    audioTranscodingMsg.value = ''
+    if (requestId === audioRequestId) audioTranscodingMsg.value = `Audio conversion failed: ${err.message}`
   } finally {
-    audioTranscoding.value = false
-    // Clear message after a few seconds
-    setTimeout(() => { audioTranscodingMsg.value = '' }, 5000)
+    if (requestId === audioRequestId) audioTranscoding.value = false
+    if (requestId === audioRequestId && audioTranscodingMsg.value === 'Audio transcoded ✓') {
+      clearTimeout(audioStatusTimer)
+      audioStatusTimer = setTimeout(() => { audioTranscodingMsg.value = '' }, 5000)
+    }
   }
 }
 
 function closeVideo() {
+  audioRequestId++
+  clearTimeout(audioStatusTimer)
+  audioTranscodingMsg.value = ''
   if (videoSrc.value) URL.revokeObjectURL(videoSrc.value)
   videoSrc.value = null
   videoFile.value = null
@@ -656,6 +668,7 @@ function formatTime(seconds) {
 }
 
 onBeforeUnmount(() => {
+  clearTimeout(audioStatusTimer)
   if (videoSrc.value) URL.revokeObjectURL(videoSrc.value)
   if (resizeObserver) resizeObserver.disconnect()
   if (voiceWorker) { voiceWorker.terminate(); voiceWorker = null }
